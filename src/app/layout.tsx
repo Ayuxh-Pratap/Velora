@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { base, heading } from "@/constants/fonts";
 import "./globals.css";
 import { Provider } from "@/providers";
+import UIProvider from "@/components/global/uiprovider";
+import { cn } from "@/lib";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,12 +29,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={cn(
+          `${geistSans.variable} ${geistMono.variable} antialiased bg-[#050505] text-foreground font-base dark`,
+          base.variable,
+          heading.variable,
+        )}
+         cz-shortcut-listen="true"
       >
-        <Provider>
-          {children}
-        </Provider>
+        <UIProvider>
+          <Provider>
+            {children}
+          </Provider>
+        </UIProvider>
       </body>
-    </html>
+    </html >
   );
 };

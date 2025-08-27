@@ -6,7 +6,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/trpc/server";
 import { getSession } from "@/lib/auth";
 
-import { LandingPageContents } from "./_ui/landing-page-contents";
+import LandingPageContents from "./_ui/landing-page-contents";
 
 const LandingPage = async () => {
   const session = await getSession();

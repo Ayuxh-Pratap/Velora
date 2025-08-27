@@ -1,18 +1,33 @@
-"use client";
-import Link from "next/link";
+import Navbar from "@/components/navigation/navbar";
+import Hero from "./components/hero";
+import Footer from "@/components/navigation/footer";
+import Companies from "./components/companies";
+import HowItWorks from "./components/how-it-works";
+import Features from "./components/features";
+import Faq from "./components/faq";
+import Stats from "./components/stats";
+import Testimonials from "./components/testimonials";
+import CTA from "./components/cta";
 
-import { Button } from "@/components/ui/button";
-
-export const LandingPageContents = () => {
-
+const LandingPageContents = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full">
-      This is the landing page
-      <Link href="/login">
-        <Button>
-          Login
-        </Button>
-      </Link>
-    </div>
+    <>
+      <main className="w-full grow relative">
+        <Navbar />
+        <div className="w-full relative flex flex-col pt-16">
+          <Hero />
+          <Companies />
+          <HowItWorks />
+          <Features />
+          <Faq />
+          <Stats />
+          <Testimonials />
+          <CTA />
+        </div>
+        <Footer />
+      </main>
+    </>
   );
 };
+
+export default LandingPageContents;
