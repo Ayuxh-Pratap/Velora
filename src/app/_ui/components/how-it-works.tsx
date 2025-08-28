@@ -40,7 +40,7 @@ const HowItWorks = () => {
                                         Express ideas like a human, <br /> not a machine
                                     </h4>
                                     <p className="text-sm lg:text-base text-muted-foreground text-balance">
-                                        Verve's notebook solution allows you to write and express your ideas naturally
+                                        Verve&apos;s notebook solution allows you to write and express your ideas naturally
                                     </p>
                                 </div>
                             </div>
@@ -87,7 +87,7 @@ const HowItWorks = () => {
                                         Build your <br /> model block by block
                                     </h4>
                                     <p className="text-sm lg:text-base text-muted-foreground text-balance">
-                                        Verve's notebook solution allows you to build your model step by step, ensuring clarity and control
+                                        Verve&apos;s notebook solution allows you to build your model step by step, ensuring clarity and control
                                     </p>
                                 </div>
                             </div>
@@ -112,7 +112,7 @@ const HowItWorks = () => {
                                         Express ideas like a <br /> human, not a machine
                                     </h4>
                                     <p className="text-sm lg:text-base text-muted-foreground text-balance">
-                                        Verve's notebook solution allows you to write and express your ideas naturally
+                                        Verve&apos;s notebook solution allows you to write and express your ideas naturally
                                     </p>
                                 </div>
                             </div>

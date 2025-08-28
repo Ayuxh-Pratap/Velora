@@ -34,7 +34,7 @@ const OurMission = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {MISSION.map((item, idx) => (
+                        {MISSION.map((item) => (
                             <div key={item.heading} className="rounded-2xl bg-[#181818] border border-neutral-800 p-4 lg:p-6 flex flex-col justify-start">
                                 <div className="size-8">
                                     <Image

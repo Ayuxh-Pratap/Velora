@@ -77,7 +77,7 @@ export const userRouter = createTRPCRouter({
     }),
 
     // Logout user
-    logout: protectedProcedure.mutation(async ({ ctx }) => {
+    logout: protectedProcedure.mutation(async () => {
         // In a real implementation, you might want to invalidate sessions
         // For now, we'll just return success
         return {

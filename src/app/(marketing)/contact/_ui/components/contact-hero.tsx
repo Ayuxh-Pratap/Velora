@@ -22,13 +22,13 @@ const ContactHero = () => {
 
                     <Container delay={0.1}>
                         <h2 className="text-balance !leading-[1.25] text-center text-4xl md:text-6xl font-semibold tracking-tight mt-6 w-full">
-                            Let's Start a Conversation
+                            Let&apos;s Start a Conversation
                         </h2>
                     </Container>
 
                     <Container delay={0.2}>
                         <p className="text-base md:text-lg font-normal text-center text-balance text-muted-foreground max-w-3xl mx-auto mt-4">
-                            Have questions or want to learn more? We're here to help. Reach out to our team and let's discuss how we can support your needs
+                            Have questions or want to learn more? We&apos;re here to help. Reach out to our team and let&apos;s discuss how we can support your needs
                         </p>
                     </Container>
 

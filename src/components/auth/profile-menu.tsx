@@ -12,9 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/hooks/use-session";
+import { User as UserType, ProfileMenuProps } from "@/types/user";
+
 
 // Component for the personalized greeting
-const UserGreeting = ({ user }: { user: any }) => {
+const UserGreeting = ({ user }: { user: UserType }) => {
     const getFirstName = (name: string) => {
         const words = name.split(' ');
         return words.slice(0, 2).join(' ');
@@ -60,7 +62,7 @@ export const ProfileMenu = () => {
 
     return (
         <div className="flex items-center">
-            <UserGreeting user={userData} />
+            <UserGreeting user={userData as UserType} />
             <ProfileMenuDropdown
                 isOpen={isOpen}
                 setIsOpen={setIsOpen}
@@ -71,7 +73,7 @@ export const ProfileMenu = () => {
     );
 };
 
-const ProfileMenuDropdown = ({ isOpen, setIsOpen, userData, handleLogout }: any) => {
+const ProfileMenuDropdown = ({ isOpen, setIsOpen, userData, handleLogout }: ProfileMenuProps) => {
     const router = useRouter();
     const getInitials = (name: string) => {
         return name
