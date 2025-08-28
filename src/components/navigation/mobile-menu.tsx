@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { NAV_LINKS } from "@/constants"
 import Link from "next/link"
 import { MenuIcon } from "lucide-react"
+import { AuthButton } from "@/components/auth/auth-button"
 
 const MobileMenu = () => {
     return (
@@ -26,13 +27,9 @@ const MobileMenu = () => {
                             </Link>
                         </SheetClose>
                     ))}
-                    <SheetClose asChild>
-                        <Link href="/contact" className="w-full mt-4">
-                            <Button size="lg" variant="outline" className="w-full">
-                                Contact Sales
-                            </Button>
-                        </Link>
-                    </SheetClose>
+                    <div className="w-full mt-4">
+                        <AuthButton variant="mobile" />
+                    </div>
                 </div>
             </SheetContent>
         </Sheet>

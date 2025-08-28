@@ -66,6 +66,24 @@
       transform: translateY(calc(-100% - var(--gap)));
     }
   }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
 }
 
 :root {
@@ -156,6 +174,7 @@
 
 ::-webkit-scrollbar {
   width: 0.25rem;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb {

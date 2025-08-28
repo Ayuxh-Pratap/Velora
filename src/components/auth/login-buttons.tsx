@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 
 export const LoginButtons = () => {
   const signinWithGithub = async () => await authClient.signIn.social({
-    callbackURL: "/home",
+    callbackURL: "/",
     provider: "github",
   });
 
   const signinWithGoogle = async () => await authClient.signIn.social({
-    callbackURL: "/home",
+    callbackURL: "/",
     provider: "google",
   });
 
