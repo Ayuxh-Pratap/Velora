@@ -19,12 +19,11 @@ interface Props {
 const ChatMessage = ({ index, message, messages, isLoading }: Props) => {
   const isUser = message.role === "user";
   const isLastMessage = index === messages.length - 1;
-  const showLoading = isLoading && isLastMessage && !isUser;
 
   return (
     <div
       className={cn(
-        "flex gap-x-2 p-2 group/message transition-all duration-300",
+        "flex gap-x-2 p-2 group/message",
         isUser ? "text-start" : "items-start my-3",
         isLastMessage ? "pb-80" : "",
       )}
@@ -33,28 +32,20 @@ const ChatMessage = ({ index, message, messages, isLoading }: Props) => {
         <div
           data-id="message-content"
           className={cn(
-            "flex flex-col grow transition-all duration-300",
+            "flex flex-col grow",
             message.role === "user" && "bg-muted text-foreground w-fit max-w-[85%] ml-auto rounded-lg px-3 py-1.5",
             !isUser && message.content.length <= 90 && "pt-1"
           )}
         >
-          {showLoading ? (
-            <div className="flex items-center pt-2.5 animate-pulse">
-              <div className="w-2.5 h-2.5 rounded-full bg-foreground animate-pulse" />
-            </div>
-          ) : (
-            <div className="whitespace-pre-wrap break-words">
-              {message.content}
-            </div>
-          )}
+          <div className="whitespace-pre-wrap break-words">
+            {message.content}
+          </div>
         </div>
         
         {/* Message options placeholder */}
-        {!isLoading && !showLoading && (
-          <div className="opacity-0 group-hover/message:opacity-100 transition-opacity">
-            {/* Message options would go here */}
-          </div>
-        )}
+        <div className="opacity-0 group-hover/message:opacity-100 transition-opacity">
+          {/* Message options would go here */}
+        </div>
       </div>
     </div>
   );

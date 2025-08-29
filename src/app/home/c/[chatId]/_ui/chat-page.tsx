@@ -1,0 +1,288 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import ChatContainer from "../../../_ui/components/chat-container";
+import ChatWrapper from "../../../_ui/components/chat-wrapper";
+import ChatInput from "../../../_ui/components/chat-input";
+
+interface Message {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+    created_at: string;
+}
+
+interface ChatPageProps {
+    chatId: string;
+}
+
+// Utility function to generate unique IDs
+const generateUniqueId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export function ChatPage({ chatId }: ChatPageProps) {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasInitialMessage, setHasInitialMessage] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialMessageProcessed = useRef(false);
+    const trpc = useTRPC();
+    
+    // Fetch existing messages using tRPC
+    const { 
+        data: messagesData, 
+        error: messagesError, 
+        isLoading: isLoadingMessages,
+        refetch: refetchMessages 
+    } = useSuspenseQuery(trpc.message.getMessages.queryOptions({ 
+        chatId,
+        limit: 50,
+        offset: 0,
+        includeDeleted: false
+    }));
+
+    // Create message mutation
+    const createMessageMutation = useMutation(
+        trpc.message.createMessage.mutationOptions({
+            onSuccess: (data: any) => {
+                // Message was saved successfully
+                console.log('Message saved:', data);
+                // Refetch messages to get the latest data
+                refetchMessages();
+            },
+            onError: (error: any) => {
+                toast.error("Failed to save message");
+                console.error("Error saving message:", error);
+            }
+        })
+    );
+
+    // AI response mutation
+    const aiResponseMutation = useMutation(
+        trpc.ai.generateResponse.mutationOptions({
+            onSuccess: (data: any) => {
+                if (data.success && data.content) {
+                    const aiMessage: Message = {
+                        id: generateUniqueId(),
+                        content: data.content,
+                        role: 'assistant',
+                        created_at: new Date().toISOString()
+                    };
+
+                    // Immediate state update for seamless UI
+                    setMessages(prev => [...prev, aiMessage]);
+
+                    // Save AI message to database
+                    createMessageMutation.mutateAsync({
+                        chatId,
+                        content: data.content,
+                        messageType: 'assistant'
+                    }).catch(error => {
+                        console.error("Failed to save AI message:", error);
+                    });
+                } else {
+                    // Fallback error message
+                    const errorMessage: Message = {
+                        id: generateUniqueId(),
+                        content: "I apologize, but I'm having trouble generating a response right now. Please try again.",
+                        role: 'assistant',
+                        created_at: new Date().toISOString()
+                    };
+                    // Immediate state update for seamless UI
+                    setMessages(prev => [...prev, errorMessage]);
+                }
+                setIsLoading(false);
+            },
+            onError: (error: any) => {
+                console.error("AI response error:", error);
+                // Fallback error message
+                const errorMessage: Message = {
+                    id: generateUniqueId(),
+                    content: "I apologize, but I'm having trouble generating a response right now. Please try again.",
+                    role: 'assistant',
+                    created_at: new Date().toISOString()
+                };
+                // Immediate state update for seamless UI
+                setMessages(prev => [...prev, errorMessage]);
+                setIsLoading(false);
+            }
+        })
+    );
+
+    // Check if chatId is valid
+    useEffect(() => {
+        if (!chatId || chatId === 'undefined') {
+            toast.error("Invalid chat ID");
+            router.push('/home');
+            return;
+        }
+    }, [chatId, router]);
+
+    // Handle messages error
+    useEffect(() => {
+        if (messagesError) {
+            toast.error("Failed to load chat history");
+            console.error("Messages error:", messagesError);
+        }
+    }, [messagesError]);
+
+    // Load existing messages when data is fetched
+    useEffect(() => {
+        if (messagesData?.messages) {
+            const formattedMessages: Message[] = messagesData.messages.map((msg: any) => ({
+                id: msg.id,
+                content: msg.content,
+                role: msg.messageType === 'assistant' ? 'assistant' : 'user',
+                created_at: msg.createdAt
+            }));
+            
+            // Sort messages by creation time (oldest first for display)
+            formattedMessages.sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            
+            setMessages(formattedMessages);
+        }
+    }, [messagesData]);
+
+    const handleSendMessage = async (content: string) => {
+        // Check if message already exists to prevent duplicates
+        const messageExists = messages.some(msg => 
+            msg.content === content && msg.role === 'user'
+        );
+        
+        if (messageExists) {
+            console.log('Message already exists, skipping...');
+            return;
+        }
+
+        // Add user message immediately to UI with optimized state update
+        const userMessage: Message = {
+            id: generateUniqueId(),
+            content,
+            role: 'user',
+            created_at: new Date().toISOString()
+        };
+
+        // Immediate state update for seamless UI
+        setMessages(prev => [...prev, userMessage]);
+        setIsLoading(true);
+
+        try {
+            // Save user message to database
+            await createMessageMutation.mutateAsync({
+                chatId,
+                content,
+                messageType: 'user'
+            });
+
+            // Prepare messages for AI (include conversation history)
+            const messagesForAI = messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+
+            // Add the new user message
+            messagesForAI.push({
+                role: 'user',
+                content: content
+            });
+
+            // Generate AI response
+            await aiResponseMutation.mutateAsync({
+                messages: messagesForAI,
+                config: {
+                    provider: 'gemini',
+                    temperature: 0.7,
+                    maxTokens: 2048
+                }
+            });
+
+        } catch (error) {
+            console.error("Failed to send message:", error);
+            setIsLoading(false);
+        }
+    };
+
+    // Handle initial message from URL params - only once
+    useEffect(() => {
+        if (initialMessageProcessed.current) return;
+        
+        const initialMessage = searchParams.get('message');
+        if (initialMessage && chatId && chatId !== 'undefined') {
+            initialMessageProcessed.current = true;
+            setHasInitialMessage(true);
+            
+            // Store the message in a ref to prevent re-processing
+            const messageToSend = initialMessage;
+            
+            // Remove the message from URL to prevent re-sending
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('message');
+            window.history.replaceState({}, '', newUrl.toString());
+            
+            // Use setTimeout to ensure URL is updated before sending message
+            setTimeout(() => {
+                handleSendMessage(messageToSend);
+            }, 0);
+        }
+    }, [chatId]); // Only depend on chatId, not searchParams
+
+    // Don't render if chatId is invalid
+    if (!chatId || chatId === 'undefined') {
+        return null;
+    }
+
+    // Show loading state while fetching messages
+    if (isLoadingMessages && messages.length === 0) {
+        return (
+            <ChatContainer>
+                <div className="flex flex-col items-center justify-center h-full space-y-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <div className="text-muted-foreground">Loading chat history...</div>
+                </div>
+            </ChatContainer>
+        );
+    }
+
+    // Show empty state if no messages and not loading
+    if (messages.length === 0 && !isLoading && !isLoadingMessages) {
+        return (
+            <>
+                <ChatContainer>
+                    <div className="flex flex-col items-center justify-center h-full space-y-4">
+                        <div className="text-muted-foreground text-center">
+                            <p className="text-lg font-medium">No messages yet</p>
+                            <p className="text-sm">Start a conversation by typing a message below.</p>
+                        </div>
+                    </div>
+                </ChatContainer>
+                <ChatInput
+                    isLoading={isLoading}
+                    onSendMessage={handleSendMessage}
+                />
+            </>
+        );
+    }
+
+    return (
+        <>
+            <ChatContainer>
+                <ChatWrapper
+                    messages={messages}
+                    isLoading={isLoading}
+                />
+            </ChatContainer>
+            <ChatInput
+                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
+            />
+        </>
+    );
+}
