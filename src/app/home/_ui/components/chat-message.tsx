@@ -1,6 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { parseVeloraResponse } from "@/utils/velora-parser";
+import VeloraMessage from "./velora-message";
+import MessageOptions from "./message-options";
 
 interface Message {
   id: string;
@@ -14,11 +17,26 @@ interface Props {
   message: Message;
   messages: Message[];
   isLoading: boolean;
+  onSignWord?: (word: string) => void; // Callback for when user clicks a signable word
 }
 
-const ChatMessage = ({ index, message, messages, isLoading }: Props) => {
+const ChatMessage = ({ index, message, messages, isLoading, onSignWord }: Props) => {
   const isUser = message.role === "user";
   const isLastMessage = index === messages.length - 1;
+
+  // Check if this is a Velora teacher response (contains markup)
+  const isVeloraResponse = !isUser && (
+    message.content.includes('<text>') ||
+    message.content.includes('<sign>')
+  );
+
+  const handleSignWord = (word: string) => {
+    if (onSignWord) {
+      onSignWord(word);
+    } else {
+      console.log('Sign word clicked:', word);
+    }
+  };
 
   return (
     <div
@@ -37,15 +55,29 @@ const ChatMessage = ({ index, message, messages, isLoading }: Props) => {
             !isUser && message.content.length <= 90 && "pt-1"
           )}
         >
-          <div className="whitespace-pre-wrap break-words">
-            {message.content}
+          {isVeloraResponse ? (
+            // Render Velora teacher response with clickable words
+            <VeloraMessage
+              blocks={parseVeloraResponse(message.content).blocks}
+              onSignWord={handleSignWord}
+            />
+          ) : (
+            // Render regular message content
+            <div className="whitespace-pre-wrap break-words">
+              {message.content}
+            </div>
+          )}
+        </div>
+
+        {/* Message options - only show for assistant messages */}
+        {!isUser && (
+          <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 mt-2 flex justify-end">
+            <MessageOptions
+              messageId={message.id}
+              content={message.content}
+            />
           </div>
-        </div>
-        
-        {/* Message options placeholder */}
-        <div className="opacity-0 group-hover/message:opacity-100 transition-opacity">
-          {/* Message options would go here */}
-        </div>
+        )}
       </div>
     </div>
   );

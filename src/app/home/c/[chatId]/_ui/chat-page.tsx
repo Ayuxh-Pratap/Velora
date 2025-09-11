@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import ChatContainer from "../../../_ui/components/chat-container";
 import ChatWrapper from "../../../_ui/components/chat-wrapper";
 import ChatInput from "../../../_ui/components/chat-input";
+import StudyModeLayout from "../../../_ui/components/study-mode-layout";
+import { prepareVeloraAIRequest } from "@/utils/velora-client-utils";
 
 interface Message {
     id: string;
@@ -29,6 +31,8 @@ export function ChatPage({ chatId }: ChatPageProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasInitialMessage, setHasInitialMessage] = useState(false);
+    const [isStudyMode, setIsStudyMode] = useState(false);
+    const [currentInput, setCurrentInput] = useState<string>('');
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialMessageProcessed = useRef(false);
@@ -152,6 +156,11 @@ export function ChatPage({ chatId }: ChatPageProps) {
     }, [messagesData]);
 
     const handleSendMessage = async (content: string) => {
+        if (!content.trim()) return;
+
+        // Set current input for study mode display
+        setCurrentInput(content);
+
         // Check if message already exists to prevent duplicates
         const messageExists = messages.some(msg => 
             msg.content === content && msg.role === 'user'
@@ -194,20 +203,42 @@ export function ChatPage({ chatId }: ChatPageProps) {
                 content: content
             });
 
-            // Generate AI response
-            await aiResponseMutation.mutateAsync({
-                messages: messagesForAI,
-                config: {
-                    provider: 'gemini',
-                    temperature: 0.7,
-                    maxTokens: 2048
-                }
+            // Generate AI response with Velora teacher mode if in study mode
+            const aiRequest = prepareVeloraAIRequest(messagesForAI, {
+                provider: 'gemini',
+                temperature: 0.7,
+                maxTokens: 2048,
+                isStudyMode: isStudyMode
             });
+
+            await aiResponseMutation.mutateAsync(aiRequest as any);
 
         } catch (error) {
             console.error("Failed to send message:", error);
             setIsLoading(false);
         }
+
+        // Clear current input after processing
+        setCurrentInput('');
+    };
+
+    const handleToggleStudyMode = () => {
+        console.log('Study mode toggle clicked! Current state:', isStudyMode);
+        const newState = !isStudyMode;
+        console.log('Setting study mode to:', newState);
+        setIsStudyMode(newState);
+        // Clear current input when toggling modes
+        setCurrentInput('');
+    };
+
+    const handleSignWord = (word: string) => {
+        // For main chat page, suggest switching to study mode for full experience
+        toast.info(`To see "${word}" in sign language, switch to Study Mode!`, {
+            action: {
+                label: "Study Mode",
+                onClick: () => setIsStudyMode(true)
+            }
+        });
     };
 
     // Handle initial message from URL params - only once
@@ -242,7 +273,7 @@ export function ChatPage({ chatId }: ChatPageProps) {
     // Show loading state while fetching messages
     if (isLoadingMessages && messages.length === 0) {
         return (
-            <ChatContainer>
+            <ChatContainer isStudyMode={isStudyMode}>
                 <div className="flex flex-col items-center justify-center h-full space-y-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     <div className="text-muted-foreground">Loading chat history...</div>
@@ -255,17 +286,27 @@ export function ChatPage({ chatId }: ChatPageProps) {
     if (messages.length === 0 && !isLoading && !isLoadingMessages) {
         return (
             <>
-                <ChatContainer>
-                    <div className="flex flex-col items-center justify-center h-full space-y-4">
-                        <div className="text-muted-foreground text-center">
-                            <p className="text-lg font-medium">No messages yet</p>
-                            <p className="text-sm">Start a conversation by typing a message below.</p>
+                <ChatContainer isStudyMode={isStudyMode}>
+                    {isStudyMode ? (
+                        <StudyModeLayout 
+                            messages={messages}
+                            isLoading={isLoading}
+                            currentInput={currentInput}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <div className="text-muted-foreground text-center">
+                                <p className="text-lg font-medium">No messages yet</p>
+                                <p className="text-sm">Start a conversation by typing a message below.</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </ChatContainer>
                 <ChatInput
                     isLoading={isLoading}
                     onSendMessage={handleSendMessage}
+                    isStudyMode={isStudyMode}
+                    onToggleStudyMode={handleToggleStudyMode}
                 />
             </>
         );
@@ -273,15 +314,26 @@ export function ChatPage({ chatId }: ChatPageProps) {
 
     return (
         <>
-            <ChatContainer>
-                <ChatWrapper
-                    messages={messages}
-                    isLoading={isLoading}
-                />
+            <ChatContainer isStudyMode={isStudyMode}>
+                {isStudyMode ? (
+                    <StudyModeLayout 
+                        messages={messages}
+                        isLoading={isLoading}
+                        currentInput={currentInput}
+                    />
+                ) : (
+                    <ChatWrapper
+                        messages={messages}
+                        isLoading={isLoading}
+                        onSignWord={handleSignWord}
+                    />
+                )}
             </ChatContainer>
             <ChatInput
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
+                isStudyMode={isStudyMode}
+                onToggleStudyMode={handleToggleStudyMode}
             />
         </>
     );

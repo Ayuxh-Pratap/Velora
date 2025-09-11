@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { memo } from 'react';
 import ChatPannel from './chat-pannel';
 
 interface Message {
@@ -13,13 +13,14 @@ interface Message {
 interface Props {
   messages: Message[];
   isLoading?: boolean;
+  onSignWord?: (word: string) => void;
 }
-const ChatWrapper = ({ messages, isLoading = false }: Props) => {
+const ChatWrapper = ({ messages, isLoading = false, onSignWord }: Props) => {
   return (
     <div className="relative flex-1 size-full">
-      <ChatPannel messages={messages} isLoading={isLoading} />
+      <ChatPannel messages={messages} isLoading={isLoading} onSignWord={onSignWord} />
     </div>
   );
 };
 
-export default ChatWrapper;
+export default memo(ChatWrapper);

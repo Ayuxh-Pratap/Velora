@@ -2,6 +2,7 @@ import { protectedProcedure, createTRPCRouter } from "../init";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { aiManager } from "@/lib/ai/manager";
+import { prepareVeloraPrompt } from "@/utils/velora-prompt-loader";
 
 export const aiRouter = createTRPCRouter({
     generateResponse: protectedProcedure
@@ -15,7 +16,8 @@ export const aiRouter = createTRPCRouter({
                 model: z.string().optional(),
                 temperature: z.number().min(0).max(2).optional(),
                 maxTokens: z.number().positive().optional(),
-                systemPrompt: z.string().optional()
+                systemPrompt: z.string().optional(),
+                useVeloraMode: z.boolean().optional()
             }).optional()
         }))
         .mutation(async ({ ctx, input }) => {
@@ -26,8 +28,18 @@ export const aiRouter = createTRPCRouter({
                 // Format messages for AI
                 const aiMessages = aiManager.formatMessagesForAI(messages);
 
+                // Prepare config with Velora system prompt if requested
+                let finalConfig = config;
+                if (config?.useVeloraMode) {
+                    const veloraPrompt = prepareVeloraPrompt();
+                    finalConfig = {
+                        ...config,
+                        systemPrompt: veloraPrompt
+                    };
+                }
+
                 // Generate AI response
-                const response = await aiManager.generateResponse(aiMessages, config);
+                const response = await aiManager.generateResponse(aiMessages, finalConfig);
 
                 if (!response.success) {
                     throw new TRPCError({

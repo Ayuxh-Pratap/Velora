@@ -13,7 +13,7 @@ const UIProvider = ({ children }: UIProviderProps) => {
       <Toaster
         richColors
         theme="dark"
-        position="bottom-center"
+        position="top-right"
       />
       {children}
     </>

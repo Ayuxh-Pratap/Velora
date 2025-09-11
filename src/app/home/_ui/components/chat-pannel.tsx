@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import ChatMessage from './chat-message';
 import EmptyState from './empty-state';
 import { useSidebar } from "@/components/ui/sidebar";
@@ -16,27 +16,28 @@ interface Message {
 interface Props {
   messages: Message[];
   isLoading?: boolean;
+  onSignWord?: (word: string) => void;
 }
 
-const ChatPannel = ({ messages, isLoading = false }: Props) => {
+const ChatPannel = ({ messages, isLoading = false, onSignWord }: Props) => {
   const { state } = useSidebar();
-  
+
   // 🎯 KEY: Scroll management refs
   const messagesRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  
+
   const showEmpty = messages.length === 0;
 
   // 🎯 KEY: Smooth scroll to bottom function
   const scrollToBottom = (force = false) => {
     if (!messagesRef.current) return;
-    
+
     // Don't auto-scroll if user has manually scrolled up (unless forced)
     if (isUserScrolled && !force) return;
-    
-    messagesRef.current.scrollIntoView({ 
+
+    messagesRef.current.scrollIntoView({
       behavior: 'smooth',
       block: 'end'
     });
@@ -45,10 +46,10 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
   // 🎯 KEY: Check if user has scrolled up manually
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
-    
+
     setIsUserScrolled(!isAtBottom);
     setShowScrollButton(!isAtBottom && messages.length > 0);
   };
@@ -73,17 +74,20 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
   }, []); // Only run once on mount
 
   return (
-    <div 
+    <div
       ref={chatContainerRef}
       onScroll={handleScroll}
       className={cn(
         "relative flex flex-col w-full pt-16 pb-24 mx-auto h-full overflow-y-none scroll-smooth",
         // When sidebar is expanded, use smaller max-width for better centering
-        state === "expanded" 
-          ? "md:max-w-2xl lg:max-w-3xl" 
+        state === "expanded"
+          ? "md:max-w-2xl lg:max-w-3xl"
           : "md:max-w-4xl lg:max-w-5xl"
       )}
     >
+      {/* Fade Effect Overlay - Fixed at top, full width */}
+      {/* <div className="fixed top-10 left-0 right-0 h-16 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20" /> */}
+
       {showEmpty ? (
         <EmptyState />
       ) : (
@@ -95,9 +99,10 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
               index={index}
               messages={messages}
               isLoading={isLoading}
+              onSignWord={onSignWord}
             />
           ))}
-          
+
           {/* Loading indicator - appears right after the last user message */}
           {isLoading && (
             <div className="flex gap-x-2 p-2 group/message items-start my-3">
@@ -113,7 +118,7 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
           )}
         </>
       )}
-      
+
       {/* Error state example */}
       {false && (
         <div className="py-4 flex items-center justify-center w-full">
@@ -128,7 +133,7 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
 
       {/* 🎯 KEY: The scroll target element */}
       <div ref={messagesRef} className="w-full h-px" />
-      
+
       {/* 🎯 KEY: Scroll to bottom button */}
       {showScrollButton && (
         <button
@@ -144,4 +149,4 @@ const ChatPannel = ({ messages, isLoading = false }: Props) => {
   );
 };
 
-export default ChatPannel;
+export default memo(ChatPannel);
