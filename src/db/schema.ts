@@ -51,6 +51,39 @@ export const messageSenderEnum = pgEnum("message_sender", ["user", "assistant"])
 export const messageStatusEnum = pgEnum("message_status", ["sent", "delivered", "read", "failed"]);
 export const reactionTypeEnum = pgEnum("reaction_type", ["like", "love", "laugh", "wow", "sad", "angry"]);
 
+// Healthcare Node System enums
+export const specialtyEnum = pgEnum("specialty", [
+	"general_medicine", 
+	"pediatrics", 
+	"cardiology", 
+	"emergency_medicine", 
+	"infectious_disease", 
+	"neurology", 
+	"psychiatry", 
+	"dermatology", 
+	"orthopedics", 
+	"gastroenterology",
+	"endocrinology",
+	"oncology",
+	"pulmonology",
+	"nephrology",
+	"rheumatology",
+	"ophthalmology",
+	"otolaryngology",
+	"anesthesiology",
+	"radiology",
+	"pathology",
+	"surgery",
+	"obstetrics_gynecology",
+	"urology",
+	"plastic_surgery",
+	"forensic_medicine",
+	"sports_medicine",
+	"geriatrics",
+	"occupational_medicine",
+	"public_health"
+]);
+
 // Simplified chat table for single-user AI conversations
 export const chat = pgTable("chat", {
 	id: text("id").primaryKey(), // Unique chat ID
@@ -109,6 +142,33 @@ export const messageReadReceipt = pgTable("message_read_receipt", {
 	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 	readAt: timestamp("read_at").notNull(),
 	createdAt: timestamp("created_at").notNull(),
+});
+
+// Healthcare Specialist Nodes
+export const node = pgTable("node", {
+	id: text("id").primaryKey(), // Unique node ID
+	name: text("name").notNull(), // Display name (e.g., "Pediatric Specialist", "Rabies Expert")
+	description: text("description").notNull(), // Brief description of the specialist's expertise
+	specialty: specialtyEnum("specialty").notNull().default("general_medicine"), // Medical specialty category
+	prompt: text("prompt").notNull(), // The system prompt that defines this specialist's behavior
+	isSystemNode: boolean("is_system_node").notNull().default(true), // System vs user-created nodes
+	isActive: boolean("is_active").notNull().default(true), // Whether this node is available for selection
+	createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }), // User who created this node (null for system nodes)
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+});
+
+// Active nodes for specific chat sessions (many-to-many relationship)
+export const chatNode = pgTable("chat_node", {
+	id: text("id").primaryKey(),
+	chatId: text("chat_id").notNull().references(() => chat.id, { onDelete: "cascade" }), // Chat session
+	nodeId: text("node_id").notNull().references(() => node.id, { onDelete: "cascade" }), // Active specialist node
+	addedAt: timestamp("added_at").notNull(), // When this specialist was added to the chat
+	addedByUserId: text("added_by_user_id").notNull().references(() => user.id, { onDelete: "cascade" }), // Who added this node
+	isActive: boolean("is_active").notNull().default(true), // Whether this node is currently active in the chat
+	priority: integer("priority").default(1), // Priority order for prompt merging (1 = highest)
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
 });
 
 // Chat settings per user
