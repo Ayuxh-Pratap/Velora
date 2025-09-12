@@ -9,6 +9,7 @@ import ChatWrapper from "./components/chat-wrapper";
 import ChatInput from "./components/chat-input";
 import EmptyState from "./components/empty-state";
 import StudyModeLayout from "./components/study-mode-layout";
+import { NodeWorkspaceModal } from "./node/node-workspace-modal";
 
 interface Message {
   id: string;
@@ -23,18 +24,22 @@ const generateUniqueId = () => {
 };
 
 export const HomePageContents = () => {
+  console.log('HomePageContents component rendering...');
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string>('');
   const [isStudyMode, setIsStudyMode] = useState(false);
+  const [isNodeMode, setIsNodeMode] = useState(false);
   const [currentInput, setCurrentInput] = useState<string>('');
   const router = useRouter();
   const trpc = useTRPC();
 
-  // Debug useEffect to monitor study mode state changes
+  // Debug useEffect to monitor mode state changes
   useEffect(() => {
     console.log('Study mode state changed to:', isStudyMode);
-  }, [isStudyMode]);
+    console.log('Node mode state changed to:', isNodeMode);
+  }, [isStudyMode, isNodeMode]);
 
   const createChatMutation = useMutation(trpc.chat.createChat.mutationOptions({
     onSuccess: (data: any) => {
@@ -66,7 +71,7 @@ export const HomePageContents = () => {
     setCurrentInput(content);
 
     // If this is the first message (empty state), create a new chat
-    if (messages.length === 0 && !isStudyMode) {
+    if (messages.length === 0 && !isStudyMode && !isNodeMode) {
       setIsLoading(true);
       setPendingMessage(content); // Store the message content
 
@@ -84,7 +89,7 @@ export const HomePageContents = () => {
       }
     }
 
-    // For study mode or existing chats, add the message
+    // For study mode, node mode, or existing chats, add the message
     const userMessage: Message = {
       id: generateUniqueId(),
       content,
@@ -101,7 +106,9 @@ export const HomePageContents = () => {
         id: generateUniqueId(),
         content: isStudyMode
           ? `Sign language translation for: "${content}". The 3D model will now demonstrate the corresponding gestures.`
-          : `I received your message: "${content}". This is a simulated response. In a real implementation, this would be an AI-generated response.`,
+          : isNodeMode
+            ? `Medical specialist team response for: "${content}". Your healthcare specialists are analyzing your query and will provide comprehensive medical insights.`
+            : `I received your message: "${content}". This is a simulated response. In a real implementation, this would be an AI-generated response.`,
         role: 'assistant',
         created_at: new Date().toISOString()
       };
@@ -125,8 +132,19 @@ export const HomePageContents = () => {
     setCurrentInput('');
   };
 
-  console.log('Rendering with isStudyMode:', isStudyMode, 'messages.length:', messages.length);
+  const handleToggleNodeMode = () => {
+    console.log('Node mode toggle clicked! Current state:', isNodeMode);
+    const newState = !isNodeMode;
+    console.log('Setting node mode to:', newState);
+    setIsNodeMode(newState);
+    // Clear current input when toggling modes
+    setCurrentInput('');
+    console.log('Node mode state updated to:', newState);
+  };
+
+  console.log('Rendering with isStudyMode:', isStudyMode, 'isNodeMode:', isNodeMode, 'messages.length:', messages.length);
   console.log('handleToggleStudyMode function:', handleToggleStudyMode);
+  console.log('handleToggleNodeMode function:', handleToggleNodeMode);
 
   return (
     <>
@@ -146,11 +164,20 @@ export const HomePageContents = () => {
           />
         )}
       </ChatContainer>
+      
       <ChatInput
         isLoading={isLoading}
         onSendMessage={handleSendMessage}
         isStudyMode={isStudyMode}
         onToggleStudyMode={handleToggleStudyMode}
+        isNodeMode={isNodeMode}
+        onToggleNodeMode={handleToggleNodeMode}
+      />
+      
+      {/* Node Workspace Modal */}
+      <NodeWorkspaceModal
+        isOpen={isNodeMode}
+        onClose={() => setIsNodeMode(false)}
       />
     </>
   );

@@ -9,6 +9,7 @@ import ChatContainer from "../../../_ui/components/chat-container";
 import ChatWrapper from "../../../_ui/components/chat-wrapper";
 import ChatInput from "../../../_ui/components/chat-input";
 import StudyModeLayout from "../../../_ui/components/study-mode-layout";
+import { NodeWorkspaceModal } from "../../../_ui/node/node-workspace-modal";
 import { prepareVeloraAIRequest } from "@/utils/velora-client-utils";
 
 interface Message {
@@ -32,6 +33,7 @@ export function ChatPage({ chatId }: ChatPageProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [hasInitialMessage, setHasInitialMessage] = useState(false);
     const [isStudyMode, setIsStudyMode] = useState(false);
+    const [isNodeMode, setIsNodeMode] = useState(false);
     const [currentInput, setCurrentInput] = useState<string>('');
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -231,6 +233,15 @@ export function ChatPage({ chatId }: ChatPageProps) {
         setCurrentInput('');
     };
 
+    const handleToggleNodeMode = () => {
+        console.log('Node mode toggle clicked! Current state:', isNodeMode);
+        const newState = !isNodeMode;
+        console.log('Setting node mode to:', newState);
+        setIsNodeMode(newState);
+        // Clear current input when toggling modes
+        setCurrentInput('');
+    };
+
     const handleSignWord = (word: string) => {
         // For main chat page, suggest switching to study mode for full experience
         toast.info(`To see "${word}" in sign language, switch to Study Mode!`, {
@@ -307,6 +318,8 @@ export function ChatPage({ chatId }: ChatPageProps) {
                     onSendMessage={handleSendMessage}
                     isStudyMode={isStudyMode}
                     onToggleStudyMode={handleToggleStudyMode}
+                    isNodeMode={isNodeMode}
+                    onToggleNodeMode={handleToggleNodeMode}
                 />
             </>
         );
@@ -334,6 +347,14 @@ export function ChatPage({ chatId }: ChatPageProps) {
                 onSendMessage={handleSendMessage}
                 isStudyMode={isStudyMode}
                 onToggleStudyMode={handleToggleStudyMode}
+                isNodeMode={isNodeMode}
+                onToggleNodeMode={handleToggleNodeMode}
+            />
+
+            {/* Node Workspace Modal */}
+            <NodeWorkspaceModal
+                isOpen={isNodeMode}
+                onClose={() => setIsNodeMode(false)}
             />
         </>
     );

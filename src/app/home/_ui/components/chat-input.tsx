@@ -13,9 +13,11 @@ interface Props {
   isLoading?: boolean;
   isStudyMode?: boolean;
   onToggleStudyMode?: () => void;
+  isNodeMode?: boolean;
+  onToggleNodeMode?: () => void;
 }
 
-const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onToggleStudyMode }: Props) => {
+const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onToggleStudyMode, isNodeMode = false, onToggleNodeMode }: Props) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
   const { state } = useSidebar();
@@ -50,8 +52,6 @@ const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onTo
     }
   };
 
-
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -75,6 +75,21 @@ const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onTo
     }
   };
 
+  // Handle mode toggles with mutual exclusivity
+  const handleStudyModeToggle = () => {
+    if (isNodeMode && onToggleNodeMode) {
+      onToggleNodeMode(); // Turn off node mode first
+    }
+    onToggleStudyMode?.();
+  };
+
+  const handleNodeModeToggle = () => {
+    if (isStudyMode && onToggleStudyMode) {
+      onToggleStudyMode(); // Turn off study mode first
+    }
+    onToggleNodeMode?.();
+  };
+
   return (
     <div className="fixed bottom-0 transition-all duration-200 ease-linear z-40"
       style={{
@@ -82,8 +97,6 @@ const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onTo
         right: "0"
       }}>
       <div className="px-3 text-base pb-4 md:px-5 lg:px-1 xl:px-5">
-
-
 
         <div className={cn(
           "flex flex-1 gap-4 mx-auto text-base md:gap-5 lg:gap-6 transition-all duration-200 ease-linear",
@@ -114,15 +127,62 @@ const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onTo
                   disabled={isLoading}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isStudyMode ? "Type a message for sign language translation..." : "Type a message..."}
+                  placeholder={
+                    isStudyMode 
+                      ? "Type a message for sign language translation..." 
+                      : isNodeMode 
+                        ? "Type a message for your medical specialist team..."
+                        : "Type a message..."
+                  }
                   className={cn(
                     "h-auto pl-4 mb-12 overflow-y-auto bg-transparent border-0 resize-none text-left focus:outline-none min-h-12 max-h-22 w-full ring-0 focus-visible:ring-0 focus-visible:ring-offset-0",
                   )}
                 />
               </div>
 
-              {/* Attach files button */}
-              <div className="absolute left-2 bottom-2 z-20">
+              {/* Mode toggle buttons */}
+              <div className="absolute left-2 bottom-2 z-20 flex gap-1">
+                {/* Study Mode Button */}
+                <Button
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                  disabled={isLoading}
+                  onClick={handleStudyModeToggle}
+                  className={cn(
+                    "active:scale-90 transition-all duration-200",
+                    isStudyMode
+                      ? "bg-accent text-blue-600 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300"
+                      : "hover:bg-accent"
+                  )}
+                  title={isStudyMode ? "Exit Study Mode" : "Enter Study Mode"}
+                >
+                  <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </Button>
+
+                {/* Node Mode Button */}
+                <Button
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                  disabled={isLoading}
+                  onClick={handleNodeModeToggle}
+                  className={cn(
+                    "active:scale-90 transition-all duration-200",
+                    isNodeMode
+                      ? "bg-accent text-green-600 hover:bg-green-200 dark:bg-green-900 dark:text-green-300"
+                      : "hover:bg-accent"
+                  )}
+                  title={isNodeMode ? "Exit Node Mode" : "Enter Node Mode"}
+                >
+                  <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </Button>
+
+                {/* File upload button */}
                 <Button
                   size="icon"
                   type="button"
@@ -144,36 +204,6 @@ const ChatInput = ({ onSendMessage, isLoading = false, isStudyMode = false, onTo
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </label>
-                </Button>
-
-                <Button
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                  disabled={isLoading}
-                  onClick={() => {
-                    console.log('Button clicked!');
-                    console.log('onToggleStudyMode function:', onToggleStudyMode);
-                    console.log('isStudyMode prop:', isStudyMode);
-                    console.log('Type of onToggleStudyMode:', typeof onToggleStudyMode);
-                    if (onToggleStudyMode) {
-                      console.log('Calling onToggleStudyMode...');
-                      onToggleStudyMode();
-                    } else {
-                      console.log('onToggleStudyMode is undefined!');
-                    }
-                  }}
-                  className={cn(
-                    "active:scale-90 transition-all duration-200",
-                    isStudyMode
-                      ? "bg-accent text-blue-600 hover:bg-blue-200"
-                      : "hover:bg-accent"
-                  )}
-                  title={isStudyMode ? "Exit Study Mode" : "Enter Study Mode"}
-                >
-                  <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
                 </Button>
               </div>
 
