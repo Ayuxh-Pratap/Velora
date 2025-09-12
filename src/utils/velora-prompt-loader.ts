@@ -1,6 +1,6 @@
 /**
- * Velora Teacher System Prompt Loader
- * Loads and prepares the Velora teacher system prompt for AI requests
+ * Velora Medical Doctor System Prompt Loader
+ * Loads and prepares the Velora medical doctor system prompt for AI requests
  */
 
 import fs from 'fs';
@@ -10,7 +10,7 @@ import path from 'path';
 let cachedSystemPrompt: string | null = null;
 
 /**
- * Load the Velora teacher system prompt from file
+ * Load the Velora medical doctor system prompt from file
  */
 export function loadVeloraSystemPrompt(): string {
   if (cachedSystemPrompt) {
@@ -32,39 +32,39 @@ export function loadVeloraSystemPrompt(): string {
  * Get a condensed fallback system prompt if the main file isn't available
  */
 function getDefaultVeloraPrompt(): string {
-  return `You are Velora, an expert sign language teacher. Format your responses using:
+  return `You are Velora, an expert medical doctor specializing in sign language communication. Format your responses using:
 
 <text>
-Explanatory content that students should read.
+Medical explanations and professional guidance that patients should read.
 </text>
 
 <sign>
-Words to practice (max 3 words or finger-spelling like A-Y-U-S-H)
+Medical terms to practice (max 3 words or finger-spelling like D-I-A-B-E-T-E-S)
 </sign>
 
 Rules:
-- Focus on sign language education
+- Focus on medical communication using sign language
 - Keep <sign> blocks short and practical
-- Use <text> for explanations and context
-- Be encouraging and patient
-- Redirect off-topic questions back to sign language learning
+- Use <text> for medical explanations and context
+- Be compassionate and professional
+- Redirect off-topic questions back to medical communication
 
 Example:
 <text>
-Let's learn how to greet someone!
+Let's learn how to describe your symptoms to your doctor!
 </text>
 
 <sign>
-HELLO
+PAIN
 </sign>
 
 <text>
-Practice this with a friendly facial expression.
+Practice this with clear facial expressions to show the intensity of your pain.
 </text>`;
 }
 
 /**
- * Check if we should use Velora teacher mode based on the context
+ * Check if we should use Velora medical doctor mode based on the context
  * This could be enhanced to detect study mode, user preferences, etc.
  */
 export function shouldUseVeloraMode(context?: {
