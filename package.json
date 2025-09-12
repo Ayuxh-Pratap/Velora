@@ -1,12 +1,24 @@
 {
-  "name": "walkthrough-starting-point",
-  "version": "0.1.0",
+  "name": "velora-healthcare-chatbot",
+  "version": "1.0.0",
+  "description": "AI-powered healthcare chatbot with multi-specialist teams and sign language support",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:drop": "drizzle-kit drop",
+    "seed": "tsx src/scripts/seed-healthcare-nodes.ts seed",
+    "list": "tsx src/scripts/seed-healthcare-nodes.ts list",
+    "setup": "node scripts/setup.js",
+    "setup:windows": "scripts\\setup.bat",
+    "setup:unix": "bash scripts/setup.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
