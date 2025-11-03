@@ -12,6 +12,8 @@ export function prepareVeloraAIRequest(
     temperature?: number;
     maxTokens?: number;
     isStudyMode?: boolean;
+    chatId?: string;
+    useNodeBasedPrompting?: boolean;
   }
 ) {
   const baseConfig = {
@@ -28,6 +30,18 @@ export function prepareVeloraAIRequest(
       config: {
         ...baseConfig,
         useVeloraMode: true // Flag for backend to use Velora system prompt
+      }
+    };
+  }
+
+  // If in node mode, enable node-based prompting
+  if (config?.useNodeBasedPrompting && config?.chatId) {
+    return {
+      messages,
+      config: {
+        ...baseConfig,
+        chatId: config.chatId,
+        useNodeBasedPrompting: true // Flag for backend to use node-based prompting
       }
     };
   }

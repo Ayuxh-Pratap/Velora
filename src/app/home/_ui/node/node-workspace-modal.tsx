@@ -5,21 +5,24 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTRPC } from "@/trpc/client"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import {
-    X,
-    Play,
-    Save,
-    Zap,
-    Database,
-    Mail,
-    Webhook,
-    ZoomIn,
-    ZoomOut,
-    Maximize2,
-    Minimize2,
-    RotateCcw,
-    MousePointer,
-    Hand,
+  X,
+  Play,
+  Save,
+  Zap,
+  Database,
+  Mail,
+  Webhook,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  MousePointer,
+  Hand,
     Stethoscope,
     Heart,
     Brain,
@@ -78,8 +81,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 
 interface NodeWorkspaceModalProps {
-    isOpen: boolean
-    onClose: () => void
+  isOpen: boolean
+  onClose: () => void
+    chatId?: string // Optional chat ID for context
 }
 
 // Custom Node Types for React Flow
@@ -260,92 +264,41 @@ const nodeTypes: NodeTypes = {
     healthcareNode: HealthcareNodeComponent,
 }
 
-// Healthcare Specialists Data
-const healthcareSpecialists = [
-    {
-        id: "general_medicine",
-        label: "General Medicine",
-        description: "Primary healthcare and general practice",
-        specialty: "General Medicine",
-        icon: Stethoscope,
-        color: "blue"
-    },
-    {
-        id: "pediatrics",
-        label: "Pediatrics",
-        description: "Children's health and development",
-        specialty: "Pediatrics",
-        icon: Baby,
-        color: "green"
-    },
-    {
-        id: "cardiology",
-        label: "Cardiology",
-        description: "Heart and cardiovascular system",
-        specialty: "Cardiology",
-        icon: Heart,
-        color: "red"
-    },
-    {
-        id: "neurology",
-        label: "Neurology",
-        description: "Brain and nervous system",
-        specialty: "Neurology",
-        icon: Brain,
-        color: "purple"
-    },
-    {
-        id: "infectious_disease",
-        label: "Infectious Disease",
-        description: "Viral and bacterial infections",
-        specialty: "Infectious Disease",
-        icon: Shield,
-        color: "orange"
-    },
-    {
-        id: "emergency_medicine",
-        label: "Emergency Medicine",
-        description: "Acute care and trauma",
-        specialty: "Emergency Medicine",
-        icon: Activity,
-        color: "yellow"
-    },
-    {
-        id: "dermatology",
-        label: "Dermatology",
-        description: "Skin, hair, and nail conditions",
-        specialty: "Dermatology",
-        icon: Eye,
-        color: "pink"
-    },
-    {
-        id: "orthopedics",
-        label: "Orthopedics",
-        description: "Musculoskeletal system",
-        specialty: "Orthopedics",
-        icon: Bone,
-        color: "indigo"
-    },
-    {
-        id: "psychiatry",
-        label: "Psychiatry",
-        description: "Mental health and psychiatric disorders",
-        specialty: "Psychiatry",
-        icon: Pill,
-        color: "teal"
-    },
-    {
-        id: "gastroenterology",
-        label: "Gastroenterology",
-        description: "Digestive system and liver",
-        specialty: "Gastroenterology",
-        icon: Database,
-        color: "cyan"
-    }
-]
+// Icon mapping for specialties
+const specialtyIconMap: Record<string, React.ComponentType<any>> = {
+    general_medicine: Stethoscope,
+    pediatrics: Baby,
+    cardiology: Heart,
+    neurology: Brain,
+    infectious_disease: Shield,
+    emergency_medicine: Activity,
+    dermatology: Eye,
+    orthopedics: Bone,
+    psychiatry: Pill,
+    gastroenterology: Database,
+    endocrinology: Activity,
+    oncology: Shield,
+    pulmonology: Activity,
+    nephrology: Activity,
+    rheumatology: Activity,
+    ophthalmology: Eye,
+    otolaryngology: Activity,
+    anesthesiology: Activity,
+    radiology: Activity,
+    pathology: Activity,
+    surgery: Activity,
+    obstetrics_gynecology: Activity,
+    urology: Activity,
+    plastic_surgery: Activity,
+    forensic_medicine: Activity,
+    sports_medicine: Activity,
+    geriatrics: Activity,
+    occupational_medicine: Activity,
+    public_health: Activity,
+}
 
 // Main React Flow Component
-function NodeWorkspaceFlow() {
+function NodeWorkspaceFlow({ healthcareSpecialists }: { healthcareSpecialists: any[] }) {
     const [reactFlowNodes, setReactFlowNodes, onNodesChange] = useNodesState([])
     const [reactFlowEdges, setReactFlowEdges, onEdgesChange] = useEdgesState([])
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
@@ -517,7 +470,7 @@ function NodeWorkspaceFlow() {
         const specialistId = event.dataTransfer.getData('application/reactflow')
         if (!specialistId) return
 
-        const specialist = healthcareSpecialists.find(s => s.id === specialistId)
+        const specialist = healthcareSpecialists.find((s: any) => s.id === specialistId)
         if (!specialist) return
 
         const position = reactFlowInstance?.screenToFlowPosition({
@@ -688,42 +641,198 @@ function NodeWorkspaceFlow() {
     )
 }
 
-export function NodeWorkspaceModal({ isOpen, onClose }: NodeWorkspaceModalProps) {
+export function NodeWorkspaceModal({ isOpen, onClose, chatId }: NodeWorkspaceModalProps) {
     const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null)
+    const trpc = useTRPC()
+    const queryClient = useQueryClient()
 
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden"
-        } else {
-            document.body.style.overflow = "unset"
-        }
-        return () => {
-            document.body.style.overflow = "unset"
-        }
-    }, [isOpen])
+    // Fetch current user
+    const { data: userData, error: userError } = useQuery(
+        trpc.user.getProfile.queryOptions()
+    )
 
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                onClose()
+    // Fetch available nodes from database
+    const { data: nodesData, isLoading: isLoadingNodes, error: nodesError } = useQuery(
+        trpc.node.getAvailableNodes.queryOptions({
+            includeInactive: false,
+            includeUserNodes: true,
+            limit: 50,
+            offset: 0
+        })
+    )
+
+    // Fetch active chat nodes if chatId is provided
+    const { data: activeChatNodes } = useQuery({
+        ...trpc.chatNode.getActiveChatNodes.queryOptions({ 
+            chatId: chatId || '', 
+            includeInactive: false 
+        }),
+        enabled: !!chatId
+    })
+
+    // Convert database nodes to healthcare specialists format
+    const healthcareSpecialists = nodesData?.nodes?.map(node => {
+        const IconComponent = specialtyIconMap[node.specialty] || Stethoscope
+        return {
+            id: node.id,
+            label: node.name,
+            description: node.description,
+            specialty: node.specialty,
+            icon: IconComponent,
+            color: "blue" // Default color, can be customized later
+        }
+    }) || []
+
+    // Activate workspace for chat mutation
+    const activateWorkspaceMutation = useMutation(
+        trpc.nodeWorkspace.activateWorkspaceForChat.mutationOptions({
+            onSuccess: (data) => {
+                console.log("Workspace activated successfully:", data)
+                toast.success("Medical team activated!", { 
+                    description: `${data.summary.successful} specialists are now active for this chat` 
+                })
+                // Refresh active chat nodes
+                if (chatId) {
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.chatNode.getActiveChatNodes.queryOptions({ chatId }).queryKey
+                    })
+                }
+                onClose() // Close the modal after activation
+            },
+            onError: (error) => {
+                console.error("Failed to activate workspace:", error)
+                toast.error("Failed to activate medical team", { 
+                    description: error.message 
+                })
             }
+        })
+    )
+
+    // Save workspace configuration mutation
+    const saveWorkspaceMutation = useMutation(
+        trpc.nodeWorkspace.saveWorkspaceConfiguration.mutationOptions({
+            onSuccess: (data) => {
+                console.log("Workspace saved successfully:", data)
+                toast.success("Workspace saved!", { 
+                    description: `Configuration "${data.configuration.name}" saved successfully` 
+                })
+            },
+            onError: (error) => {
+                console.error("Failed to save workspace:", error)
+                toast.error("Failed to save workspace", { 
+                    description: error.message 
+                })
+            }
+        })
+    )
+
+    const handleActivateTeam = () => {
+        if (!chatId) {
+            toast.error("No chat selected", { 
+                description: "Please select a chat to activate the medical team" 
+            })
+            return
         }
+
+        if (userError) {
+            toast.error("Authentication required", { 
+                description: "Please log in to activate medical teams" 
+            })
+            return
+        }
+
+        // For now, we'll create a simple configuration from the current React Flow state
+        // In a full implementation, this would come from the React Flow canvas
+        // Use the first available node from the database to ensure it exists
+        const firstNode = healthcareSpecialists[0]
+        if (!firstNode) {
+            toast.error("No specialists available", {
+                description: "Please ensure specialists are loaded before activating"
+            })
+            return
+        }
+
+        const mockNodes = [
+            {
+                id: "node-1",
+                type: "healthcareNode",
+                position: { x: 100, y: 100 },
+                data: {
+                    label: firstNode.label, // Use the actual label from the database
+                    specialty: firstNode.specialty,
+                    description: firstNode.description,
+                    priority: 1,
+                    color: "blue"
+                }
+            }
+        ]
+
+        const mockEdges: any[] = []
+
+        console.log("Using node for activation:", firstNode)
+        console.log("Mock nodes being created:", mockNodes)
+
+        // Save the configuration first
+        saveWorkspaceMutation.mutate({
+            name: `Medical Team - ${new Date().toLocaleDateString()}`,
+            description: "Activated medical specialist team",
+            nodes: mockNodes,
+            edges: mockEdges,
+            isActive: true
+        }, {
+            onSuccess: (saveData) => {
+                console.log("Workspace saved successfully:", saveData)
+                console.log("Mock nodes being activated:", mockNodes)
+                
+                // Then activate it for the chat
+                activateWorkspaceMutation.mutate({
+                    configurationId: saveData.configuration.id,
+                    chatId,
+                    replaceExisting: true
+                })
+            },
+            onError: (error) => {
+                console.error("Failed to save workspace:", error)
+                toast.error("Failed to save workspace", {
+                    description: error.message || "Please try again"
+                })
+            }
+        })
+    }
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "unset"
+    }
+    return () => {
+      document.body.style.overflow = "unset"
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+        onClose()
+      }
+    }
         if (isOpen) {
-            document.addEventListener("keydown", handleEscape)
+    document.addEventListener("keydown", handleEscape)
         }
         return () => {
             document.removeEventListener("keydown", handleEscape)
         }
-    }, [isOpen, onClose])
+  }, [isOpen, onClose])
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogPortal>
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogPortal>
                 {/* <DialogOverlay className="bg-black/90 backdrop-blur-md" /> */}
-                <DialogContent
-                    className={cn(
+        <DialogContent
+          className={cn(
                         "w-[80vw] h-[90vh] !max-w-none sm:!max-w-none max-h-none",
-                        "fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]",
+            "fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]",
                         "border border-border/60",
                         "bg-background",
                         "p-0 gap-0 rounded-xl overflow-hidden",
@@ -738,76 +847,110 @@ export function NodeWorkspaceModal({ isOpen, onClose }: NodeWorkspaceModalProps)
                     </DialogTitle>
                     <div className="flex items-center justify-between h-14 px-6 bg-muted/30 border-b border-border/50">
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
                                 <div className="size-8 rounded-lg bg-muted flex items-center justify-center shadow-lg">
                                     <Workflow className="size-4 text-muted-foreground" />
                                 </div>
                                 <div>
                                     <span className="text-lg font-semibold text-foreground">Healthcare Node Workspace</span>
                                     <p className="text-xs text-muted-foreground">Build your medical specialist team</p>
-                                </div>
-                            </div>
+                </div>
+              </div>
                             <div className="h-6 w-px bg-border/50" />
                             <Badge variant="secondary" className="text-xs px-3 py-1">
                                 Complete Node Setup
-                            </Badge>
-                        </div>
+              </Badge>
+            </div>
 
                         <div className="flex items-center gap-2">
                             <Button variant="ghost" size="sm" className="h-9 px-4 text-sm hover:bg-muted">
                                 <Save className="size-4 mr-2" />
                                 Save Team
-                            </Button>
+              </Button>
                             <Button
                                 variant="default"
                                 size="sm"
                                 className="h-9 px-4 text-sm"
+                                onClick={handleActivateTeam}
+                                disabled={activateWorkspaceMutation.isPending || saveWorkspaceMutation.isPending || !chatId || !!userError}
                             >
-                                <Play className="size-4 mr-2" />
-                                Activate Team
-                            </Button>
+                                {activateWorkspaceMutation.isPending || saveWorkspaceMutation.isPending ? (
+                                    <>
+                                        <div className="size-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                        Activating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="size-4 mr-2" />
+                                        Activate Team
+                                    </>
+                                )}
+              </Button>
                             <div className="h-6 w-px bg-border/50 mx-2" />
                             <Button variant="ghost" size="icon" className="size-9 hover:bg-muted" onClick={onClose}>
-                                <X className="size-4" />
-                            </Button>
-                        </div>
-                    </div>
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
 
-                    <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
                         {/* Node Palette Sidebar */}
                         <div className="w-96 bg-muted/20 border-r border-border/50 overflow-y-auto backdrop-blur-sm">
                             <div className="p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="size-10 rounded-xl bg-muted flex items-center justify-center shadow-lg">
                                         <Layers className="size-5 text-muted-foreground" />
-                                    </div>
+                </div>
                                     <div>
                                         <h3 className="text-lg font-semibold text-foreground">Specialist Library</h3>
                                         <p className="text-xs text-muted-foreground">Drag to canvas to add</p>
-                                    </div>
-                                </div>
+              </div>
+            </div>
 
                                 <div className="space-y-3">
-                                    {healthcareSpecialists.map((specialist) => (
-                                        <HealthcareNodePaletteItem
-                                            key={specialist.id}
-                                            specialist={specialist}
-                                            onAddToCanvas={() => { }}
-                                            isSelected={selectedSpecialty === specialist.id}
-                                            onClick={() => setSelectedSpecialty(
-                                                selectedSpecialty === specialist.id ? null : specialist.id
-                                            )}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                                    {isLoadingNodes ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                                Loading specialists...
+              </div>
+              </div>
+                                    ) : nodesError ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="text-center text-muted-foreground">
+                                                <div className="text-sm">Failed to load specialists</div>
+                                                <div className="text-xs mt-1">Please try again later</div>
+                </div>
+              </div>
+                                    ) : healthcareSpecialists.length === 0 ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="text-center text-muted-foreground">
+                                                <div className="text-sm">No specialists available</div>
+                                                <div className="text-xs mt-1">Contact your administrator</div>
+                    </div>
+                  </div>
+                                    ) : (
+                                        healthcareSpecialists.map((specialist) => (
+                                            <HealthcareNodePaletteItem
+                                                key={specialist.id}
+                                                specialist={specialist}
+                                                onAddToCanvas={() => { }}
+                                                isSelected={selectedSpecialty === specialist.id}
+                                                onClick={() => setSelectedSpecialty(
+                                                    selectedSpecialty === specialist.id ? null : specialist.id
+                                                )}
+                                            />
+                                        ))
+              )}
+            </div>
+                  </div>
+                </div>
 
                         {/* React Flow Canvas */}
                         <ReactFlowProvider>
-                            <NodeWorkspaceFlow />
+                            <NodeWorkspaceFlow healthcareSpecialists={healthcareSpecialists} />
                         </ReactFlowProvider>
-                    </div>
+          </div>
 
                     {/* Status Bar */}
                     <div className="h-10 px-6 bg-muted/20 border-t border-border/50 flex items-center justify-between text-sm">
@@ -819,8 +962,8 @@ export function NodeWorkspaceModal({ isOpen, onClose }: NodeWorkspaceModalProps)
                             <div className="flex items-center gap-2">
                                 <Workflow className="size-4 text-muted-foreground" />
                                 <span className="text-muted-foreground">Drag, Connect & Manage</span>
-                            </div>
-                            <div className="flex items-center gap-2">
+            </div>
+            <div className="flex items-center gap-2">
                                 <Settings className="size-4 text-muted-foreground" />
                                 <span className="text-muted-foreground">Save/Load Configurations</span>
                             </div>
@@ -829,13 +972,13 @@ export function NodeWorkspaceModal({ isOpen, onClose }: NodeWorkspaceModalProps)
                             <div className="flex items-center gap-2">
                                 <div className="size-2 rounded-full bg-muted-foreground/60 animate-pulse" />
                                 <span className="text-muted-foreground font-medium">All Features Active</span>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-            </DialogPortal>
-        </Dialog>
-    )
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  )
 }
 
 // Healthcare Node Palette Item Component
@@ -845,7 +988,14 @@ function HealthcareNodePaletteItem({
     isSelected,
     onClick,
 }: {
-    specialist: typeof healthcareSpecialists[0]
+    specialist: {
+        id: string
+  label: string
+  description: string
+        specialty: string
+        icon: React.ComponentType<any>
+        color: string
+    }
     onAddToCanvas: () => void
     isSelected: boolean
     onClick: () => void
@@ -856,9 +1006,9 @@ function HealthcareNodePaletteItem({
     }
     const Icon = specialist.icon
 
-    return (
-        <div
-            className={cn(
+  return (
+    <div
+      className={cn(
                 "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 group border backdrop-blur-sm",
                 "transform hover:scale-101",
                 isSelected
@@ -876,11 +1026,11 @@ function HealthcareNodePaletteItem({
                 "ring-1 ring-border/30"
             )}>
                 <Icon className="size-5 text-muted-foreground drop-shadow-sm" />
-            </div>
+        </div>
             <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-foreground">{specialist.label}</div>
                 <div className="text-xs text-muted-foreground">{specialist.specialty}</div>
-            </div>
+      </div>
             <Button
                 size="sm"
                 variant="ghost"
@@ -892,6 +1042,6 @@ function HealthcareNodePaletteItem({
             >
                 <Plus className="size-3" />
             </Button>
-        </div>
-    )
+    </div>
+  )
 }

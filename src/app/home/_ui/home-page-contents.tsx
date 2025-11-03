@@ -178,6 +178,7 @@ export const HomePageContents = () => {
       <NodeWorkspaceModal
         isOpen={isNodeMode}
         onClose={() => setIsNodeMode(false)}
+        chatId={undefined} // No chat context on home page
       />
     </>
   );

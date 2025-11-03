@@ -205,12 +205,14 @@ export function ChatPage({ chatId }: ChatPageProps) {
                 content: content
             });
 
-            // Generate AI response with Velora teacher mode if in study mode
+            // Generate AI response with appropriate mode
             const aiRequest = prepareVeloraAIRequest(messagesForAI, {
                 provider: 'gemini',
                 temperature: 0.7,
                 maxTokens: 2048,
-                isStudyMode: isStudyMode
+                isStudyMode: isStudyMode,
+                chatId: chatId, // Include chatId for node-based prompting
+                useNodeBasedPrompting: isNodeMode // Enable node-based prompting in node mode
             });
 
             await aiResponseMutation.mutateAsync(aiRequest as any);
@@ -355,6 +357,7 @@ export function ChatPage({ chatId }: ChatPageProps) {
             <NodeWorkspaceModal
                 isOpen={isNodeMode}
                 onClose={() => setIsNodeMode(false)}
+                chatId={chatId} // Pass chat context for node activation
             />
         </>
     );

@@ -5,6 +5,7 @@ import { messageRouter } from "./message";
 import { aiRouter } from "./ai";
 import { nodeRouter } from "./node";
 import { chatNodeRouter } from "./chatNode";
+import { nodeWorkspaceRouter } from "./nodeWorkspace";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   ai: aiRouter,
   node: nodeRouter,
   chatNode: chatNodeRouter,
+  nodeWorkspace: nodeWorkspaceRouter,
 });
 
 export type AppRouter = typeof appRouter;

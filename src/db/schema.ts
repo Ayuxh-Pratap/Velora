@@ -183,3 +183,18 @@ export const chatSettings = pgTable("chat_settings", {
 	createdAt: timestamp("created_at").notNull(),
 	updatedAt: timestamp("updated_at").notNull(),
 });
+
+// Node Workspace Configurations - stores visual node setups
+export const workspaceConfiguration = pgTable("workspace_configuration", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(), // User-defined name for the configuration
+	description: text("description"), // Optional description
+	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }), // Owner of the configuration
+	nodes: text("nodes").notNull(), // JSON array of React Flow nodes with positions and data
+	edges: text("edges").notNull(), // JSON array of React Flow edges/connections
+	isActive: boolean("is_active").notNull().default(false), // Whether this is the currently active configuration
+	isTemplate: boolean("is_template").notNull().default(false), // Whether this is a system template
+	tags: text("tags"), // JSON array of tags for categorization
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+});
